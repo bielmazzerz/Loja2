@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Bielmazzerz</title>
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --bg-dark: #0a0a0a;
+            --glass-bg: rgba(0, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; color: white; }
+
+        body {
+            background-color: #050505;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        .window {
+            background-color: var(--bg-dark);
+            width: 90%; max-width: 400px; padding: 30px;
+            border-radius: 20px; border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            text-align: center; z-index: 10;
+        }
+
+        h2 { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); margin-bottom: 25px; }
+
+        .screen { display: none; animation: fadeIn 0.3s ease-out; }
+        .active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        button {
+            background: var(--glass-bg); border: 1px solid var(--neon-cyan);
+            padding: 14px 20px; margin: 10px 0; width: 100%;
+            border-radius: 12px; cursor: pointer; font-weight: bold;
+            transition: 0.3s; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        button:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+
+        .price-tag { font-size: 1.4em; margin: 20px 0; color: #00ff88; font-weight: bold; }
+        .pix-box { background: #111; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px dashed var(--neon-cyan); cursor: pointer; }
+        
+        .back-btn { font-size: 0.9em; border: none; background: transparent; color: #888; width: auto; margin-bottom: 10px; }
+        .back-btn:hover { color: white; }
+
+        #preview-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: #000;
+            z-index: 9999; flex-direction: column;
+        }
+
+        .warn-header {
+            background: #ff0000; color: white; padding: 10px;
+            text-align: center; font-weight: bold; font-size: 13px;
+        }
+
+        iframe { flex-grow: 1; border: none; width: 100%; }
+
+        .preview-footer { padding: 15px; background: #000; display: flex; justify-content: center; }
+
+        input { background: transparent; border: 1px solid var(--neon-cyan); padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; text-align: center; outline: none; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="window">
+        <div id="screen-main" class="screen active">
+            <h2>Bielmazzerz</h2>
+            <button onclick="showSub('robux')">Comprar Robux ⏣</button>
+            <button onclick="showSub('diamantes')">Comprar Diamantes 💎</button>
+            <button onclick="showXit()">Comprar Xit 🎯</button>
+        </div>
+
+        <div id="screen-sub" class="screen">
+            <button class="back-btn" onclick="goHome()">← Voltar</button>
+            <h3 id="sub-title"></h3>
+            <button onclick="setVal(1, '1k')">1k <span class="coin">⏣</span> — R$ 1,00</button>
+            <button onclick="setVal(2.5, '5k')">5k <span class="coin">⏣</span> — R$ 2,50</button>
+            <button onclick="setVal(5, '15k')">15k <span class="coin">⏣</span> — R$ 5,00</button>
+            <button onclick="setVal(10, '50k')">50k <span class="coin">⏣</span> — R$ 10,00</button>
+            <button onclick="document.getElementById('div-others').style.display='block'">Outros</button>
+            <div id="div-others" style="display:none;"><input type="number" id="inp-qty" placeholder="Quantidade?" oninput="calcCustom()"></div>
+            <div id="display-price" class="price-tag"></div>
+            <button id="btn-pay" style="display:none; background:#00ff88; color:black; justify-content:center;" onclick="showPayment()">Pagar Agora</button>
+        </div>
+
+        <div id="screen-xit" class="screen">
+            <button class="back-btn" onclick="goHome()">← Voltar</button>
+            <h3>Xit Premium 🎯</h3>
+            <p>Menu V2 - Vitalício</p>
+            <div class="price-tag">R$ 5,00</div>
+            <button onclick="openPreview()" style="background:rgba(255,255,255,0.05); color:white; justify-content:center;">Ver Preview do Menu</button>
+            <button style="background:#00ff88; color:black; justify-content:center;" onclick="setVal(5, 'XIT PREMIUM'); showPayment()">Comprar Agora</button>
+        </div>
+
+        <div id="screen-pay" class="screen">
+            <h3>Finalizar Compra</h3>
+            <div class="pix-box" onclick="copyPix()">
+                <small style="color: #888;">Clique na chave para copiar:</small><br>
+                <strong id="pix-key">Bielmazzer@gmail.com</strong>
+            </div>
+            <p id="pay-info" style="color:#00ff88; font-weight:bold;"></p>
+            <button class="back-btn" onclick="goHome()" style="justify-content:center; width:100%; color:white; margin-top:10px;">Voltar ao Início</button>
+        </div>
+    </div>
+
+    <div id="preview-overlay">
+        <div class="warn-header">⚠️ FUNCIONA APENAS EM: FREE FIRE & FREE FIRE MAX ⚠️</div>
+        <iframe id="preview-frame"></iframe>
+        <div class="preview-footer">
+            <button onclick="closePreview()" style="background:#ff4141; border-color:#ff4141; color:white; justify-content:center; width:220px;">VOLTAR PARA PAGAR</button>
+        </div>
+    </div>
+
+    <script id="menu-original-code" type="text/plain">
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bielmazzerz Menu Premium V2</title>
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --dark-gray: #1a1a1a;
+            --panel-bg: rgba(20, 20, 20, 0.98);
+            --border-gray: #4a4a4a;
+        }
+
+        @keyframes masterPulse { 0% { box-shadow: 0 0 10px rgba(0,255,65,0.2); } 50% { box-shadow: 0 0 30px rgba(0,255,65,0.6); } 100% { box-shadow: 0 0 10px rgba(0,255,65,0.2); } }
+        @keyframes headerScan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes textFlow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+        @keyframes floatAnim { 0% { transform: translate(0,0); } 50% { transform: translate(2px, 5px); } 100% { transform: translate(0,0); } }
+        @keyframes shakeSlow { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(0.5deg); } 75% { transform: rotate(-0.5deg); } }
+        @keyframes borderFlash { 0% { border-color: var(--border-gray); } 50% { border-color: var(--neon-green); } 100% { border-color: var(--border-gray); } }
+        @keyframes itemSlide { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes bgScroll { from { background-position: 0 0; } to { background-position: 50px 50px; } }
+        
+        @keyframes anim1 { from { filter: brightness(1); } to { filter: brightness(1.2); } }
+        @keyframes anim2 { from { letter-spacing: 2px; } to { letter-spacing: 3px; } }
+
+        body {
+            background-color: #050505;
+            background-image: 
+                radial-gradient(var(--neon-green) 0.5px, transparent 0.5px),
+                radial-gradient(var(--neon-green) 0.5px, #050505 0.5px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            animation: bgScroll 10s linear infinite;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #fov-circle {
+            position: fixed;
+            border: 2px solid var(--neon-green);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            z-index: 1;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: masterPulse 1.5s infinite ease-in-out;
+        }
+
+        .esp-container {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 2;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #esp-box-view { 
+            width: 120px; height: 200px; 
+            border: 2px solid var(--neon-green); 
+            position: relative; display: none; 
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+            animation: borderFlash 2s infinite;
+        }
+        
+        #esp-name-view { 
+            color: var(--neon-green); font-size: 12px; margin-bottom: 5px; 
+            font-weight: bold; display: none; text-shadow: 0 0 10px var(--neon-green);
+            animation: textFlow 5s infinite linear;
+        }
+
+        #esp-hp-view { width: 6px; height: 100%; background: #444; position: absolute; left: -10px; display: none; border: 1px solid #000; }
+        #esp-hp-fill { width: 100%; height: 80%; background: var(--neon-green); position: absolute; bottom: 0; transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        #esp-line-view { 
+            position: fixed; bottom: 0; left: 50%; width: 2px; height: 40vh; 
+            background: linear-gradient(to top, var(--neon-green), transparent); 
+            display: none; transform: translateX(-50%);
+            animation: masterPulse 2s infinite alternate;
+        }
+
+        .menu-container {
+            width: 320px;
+            background: var(--panel-bg);
+            border: 2px solid var(--border-gray);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            border-top: 4px solid var(--neon-green);
+            z-index: 100;
+            position: absolute;
+            top: 50px; left: 50px;
+            animation: openAnim 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), floatAnim 4s infinite ease-in-out;
+            backdrop-filter: blur(5px);
+        }
+
+        @keyframes openAnim { from { transform: scale(0.5) translateY(100px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: linear-gradient(270deg, #222, #111, #222);
+            background-size: 200% 200%;
+            animation: headerScan 3s infinite linear;
+            cursor: move;
+        }
+
+        .header h1 { margin: 0; color: var(--neon-green); font-size: 18px; letter-spacing: 2px; animation: anim2 2s infinite alternate; }
+        
+        .window-controls { display: flex; gap: 12px; }
+        .window-controls span { cursor: pointer; font-size: 22px; transition: 0.3s; padding: 0 5px; }
+        .window-controls span:hover { color: var(--neon-green); transform: scale(1.3) rotate(15deg); }
+
+        #minimized-bar {
+            width: 320px;
+            background: #111;
+            border: 2px solid var(--border-gray);
+            border-radius: 12px;
+            border-top: 4px solid var(--neon-green);
+            display: none;
+            position: absolute;
+            z-index: 101;
+            padding: 12px;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            animation: masterPulse 2s infinite;
+        }
+
+        .tabs { display: flex; background: #000; border-bottom: 1px solid var(--border-gray); }
+        .tab-btn {
+            flex: 1; padding: 12px; background: none; border: none;
+            color: #777; cursor: pointer; font-weight: bold; font-size: 11px;
+            text-transform: uppercase; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .tab-btn.active { color: var(--neon-green); background: rgba(0, 255, 65, 0.1); border-bottom: 2px solid var(--neon-green); transform: translateY(-2px); }
+
+        .tab-content { padding: 15px; display: none; height: 350px; overflow-y: auto; scrollbar-width: none; }
+        .tab-content.active { display: block; }
+        .tab-content.active .option { animation: itemSlide 0.4s both; }
+        .tab-content.active .option:nth-child(1) { animation-delay: 0.1s; }
+        .tab-content.active .option:nth-child(2) { animation-delay: 0.2s; }
+        .tab-content.active .option:nth-child(3) { animation-delay: 0.3s; }
+        .tab-content.active .option:nth-child(4) { animation-delay: 0.4s; }
+
+        .option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(45, 45, 45, 0.5);
+            border: 1px solid #333;
+            border-radius: 8px;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .option:hover { background: rgba(0, 255, 65, 0.05); border-color: var(--neon-green); transform: translateX(8px); }
+
+        .option-info { display: flex; flex-direction: column; }
+        .option-info span { font-weight: bold; color: var(--neon-green); font-size: 13px; }
+        .option-info small { font-size: 9px; color: #aaa; text-transform: uppercase; }
+
+        .switch {
+            width: 42px; height: 22px; appearance: none;
+            background: #444; border-radius: 20px;
+            position: relative; cursor: pointer; outline: none; transition: 0.4s;
+        }
+        .switch:checked { background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); }
+        .switch::before {
+            content: ''; position: absolute; width: 16px; height: 16px;
+            background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.4s;
+        }
+        .switch:checked::before { left: 23px; transform: scale(1.1); }
+
+        .slider-box { margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; transition: 0.3s; }
+        .slider-box:hover { border-left: 3px solid var(--neon-green); }
+        input[type="range"] { width: 100%; accent-color: var(--neon-green); cursor: pointer; }
+
+        .btn-game {
+            background: linear-gradient(90deg, rgba(0,255,65,0.2), transparent, rgba(0,255,65,0.2)) !important;
+            background-size: 200% 100% !important;
+            animation: headerScan 2s infinite linear !important;
+            border: 1px solid var(--neon-green) !important;
+            cursor: pointer;
+        }
+
+        .footer {
+            padding: 12px;
+            text-align: center;
+            background: rgba(0, 255, 65, 0.1);
+            border-top: 1px solid var(--neon-green);
+        }
+        .footer span { color: var(--neon-green); font-weight: bold; font-size: 12px; letter-spacing: 1px; animation: textFlow 3s infinite alternate; }
+    </style>
+</head>
+<body>
+
+<div id="fov-circle"></div>
+<div id="esp-line-view"></div>
+<div class="esp-container" id="esp-master">
+    <div id="esp-name-view">BIEL_PLAYER [120m]</div>
+    <div id="esp-box-view">
+        <div id="esp-hp-view"><div id="esp-hp-fill"></div></div>
+    </div>
+</div>
+
+<div id="minimized-bar">
+    <span style="color: var(--neon-green); font-weight: bold; letter-spacing: 1px;">BIELMAZZERZ PREMIUM</span>
+    <div class="window-controls">
+        <span onclick="toggleMinimize()">+</span>
+    </div>
+</div>
+
+<div class="menu-container" id="main-menu">
+    <div class="header" id="drag-handle">
+        <h1>Bielmazzerz</h1>
+        <div class="window-controls">
+            <span onclick="toggleMinimize()">-</span>
+            <span onclick="closeMenu()">×</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'aimbot')">Aimbot</button>
+        <button class="tab-btn" onclick="openTab(event, 'esp')">ESP</button>
+        <button class="tab-btn" onclick="openTab(event, 'outros')">Outros</button>
+    </div>
+
+    <div id="aimbot" class="tab-content active">
+        <div class="option">
+            <div class="option-info"><span>AIMBOT</span><small>[AUTO-HEAD]</small></div>
+            <input type="checkbox" class="switch" id="aim-toggle">
+        </div>
+        <div class="slider-box">
+            <label>AIM FOV: <b id="fov-val">100px</b></label>
+            <input type="range" id="fov-slider" min="30" max="600" value="100">
+        </div>
+        <div class="slider-box">
+            <label>AUTO-AIM ALVO: <b id="target-label">Corpo</b></label>
+            <input type="range" id="target-slider" min="1" max="3" value="1">
+        </div>
+        <div class="option">
+            <div class="option-info"><span>ANT BAN</span><small>[ESTÁVEL]</small></div>
+            <input type="checkbox" class="switch" checked>
+        </div>
+        <div class="option">
+            <div class="option-info"><span>ANT-BLACKLIST</span><small>[BYPASS ATIVO]</small></div>
+            <input type="checkbox" class="switch" checked>
+        </div>
+    </div>
+
+    <div id="esp" class="tab-content">
+        <div class="option">
+            <div class="option-info"><span>ESP PLAYER</span><small>[NOME]</small></div>
+            <input type="checkbox" class="switch" id="t-name">
+        </div>
+        <div class="option">
+            <div class="option-info"><span>ESP LINHA</span><small>[LINHA]</small></div>
+            <input type="checkbox" class="switch" id="t-line">
+        </div>
+        <div class="option">
+            <div class="option-info"><span>ESP CAIXA</span><small>[2D BOX]</small></div>
+            <input type="checkbox" class="switch" id="t-box">
+        </div>
+        <div class="option">
+            <div class="option-info"><span>ESP VIDA</span><small>[BARRA HP]</small></div>
+            <input type="checkbox" class="switch" id="t-hp">
+        </div>
+    </div>
+
+    <div id="outros" class="tab-content">
+        <div class="option btn-game" onclick="openFreeFire()">
+            <div class="option-info">
+                <span>INICIAR JOGO</span>
+                <small>[ABRIR FREE FIRE]</small>
+            </div>
+            <span style="color: var(--neon-green); font-size: 20px;">➔</span>
+        </div>
+        <div class="option">
+            <div class="option-info"><span>SPEED HACK</span><small>[VELOCIDADE]</small></div>
+            <input type="checkbox" class="switch">
+        </div>
+        <div class="option">
+            <div class="option-info"><span>JUMP HACK</span><small>[PULO ALTO]</small></div>
+            <input type="checkbox" class="switch">
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>SISTEMA INJETADO COM SUCESSO</span>
+    </div>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        let contents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < contents.length; i++) {
+            contents[i].style.display = "none";
+            contents[i].classList.remove("active");
+        }
+        let btns = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+        const target = document.getElementById(tabName);
+        target.style.display = "block";
+        setTimeout(() => target.classList.add("active"), 10);
+        evt.currentTarget.classList.add("active");
+    }
+
+    let isMinimized = false;
+    function toggleMinimize() {
+        const menu = document.getElementById('main-menu');
+        const bar = document.getElementById('minimized-bar');
+        if (!isMinimized) {
+            menu.style.transform = "scale(0.8) rotate(5deg)";
+            menu.style.opacity = "0";
+            setTimeout(() => {
+                menu.style.display = 'none'; bar.style.display = 'flex';
+                bar.style.top = menu.style.top; bar.style.left = menu.style.left;
+            }, 200);
+        } else {
+            bar.style.display = 'none'; menu.style.display = 'block';
+            setTimeout(() => {
+                menu.style.transform = "scale(1) rotate(0deg)";
+                menu.style.opacity = "1";
+            }, 10);
+            menu.style.top = bar.style.top; menu.style.left = bar.style.left;
+        }
+        isMinimized = !isMinimized;
+    }
+
+    function closeMenu() { if(confirm("Fechar Bielmazzerz?")) window.location.reload(); }
+
+    function setupDrag(el, handle) {
+        let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
+        const onStart = (e) => {
+            const touch = e.type === 'touchstart' ? e.touches[0] : e;
+            p3 = touch.clientX; p4 = touch.clientY;
+            document.onmousemove = onMove; document.ontouchmove = onMove;
+            document.onmouseup = onEnd; document.ontouchend = onEnd;
+        };
+        const onMove = (e) => {
+            const touch = e.type === 'touchmove' ? e.touches[0] : e;
+            p1 = p3 - touch.clientX; p2 = p4 - touch.clientY;
+            p3 = touch.clientX; p4 = touch.clientY;
+            el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px";
+        };
+        const onEnd = () => { document.onmousemove = null; document.ontouchmove = null; };
+        handle.onmousedown = onStart; handle.ontouchstart = onStart;
+    }
+
+    setupDrag(document.getElementById("main-menu"), document.getElementById("drag-handle"));
+    setupDrag(document.getElementById("minimized-bar"), document.getElementById("minimized-bar"));
+
+    function openFreeFire() { window.location.href = "intent://#Intent;package=com.dts.freefireth;scheme=android-app;end"; }
+
+    const fovS = document.getElementById('fov-slider');
+    const fovC = document.getElementById('fov-circle');
+    const aimT = document.getElementById('aim-toggle');
+    fovS.oninput = function() {
+        document.getElementById('fov-val').innerText = this.value + "px";
+        if(aimT.checked) { fovC.style.width = this.value+'px'; fovC.style.height = this.value+'px'; }
+    }
+    aimT.onchange = function() { fovC.style.display = this.checked ? 'block' : 'none'; fovC.style.width = fovS.value+'px'; fovC.style.height = fovS.value+'px'; }
+
+    function checkEsp() {
+        const n = document.getElementById('t-name').checked;
+        const b = document.getElementById('t-box').checked;
+        const h = document.getElementById('t-hp').checked;
+        document.getElementById('esp-master').style.display = (n || b || h) ? 'flex' : 'none';
+        document.getElementById('esp-name-view').style.display = n ? 'block' : 'none';
+        document.getElementById('esp-box-view').style.display = b ? 'block' : 'none';
+        document.getElementById('esp-hp-view').style.display = h ? 'block' : 'none';
+    }
+    document.querySelectorAll('.switch').forEach(s => s.addEventListener('change', checkEsp));
+    document.getElementById('t-line').onchange = function() { document.getElementById('esp-line-view').style.display = this.checked ? 'block' : 'none'; };
+    const parts = ["Corpo", "Pescoço", "Cabeça"];
+    document.getElementById('target-slider').oninput = function() { document.getElementById('target-label').innerText = parts[this.value - 1]; }
+</script>
+</body>
+</html>
+    </script>
+
+    <script>
+        let precoFinal = 0;
+        let itemNome = "";
+
+        function showSub(tipo) {
+            itemNome = tipo.toUpperCase();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-sub').classList.add('active');
+            document.getElementById('sub-title').innerText = "Comprar " + tipo;
+            document.querySelectorAll('.coin').forEach(c => c.innerText = (tipo === 'robux' ? '⏣' : '💎'));
+        }
+
+        function showXit() {
+            itemNome = "XIT PREMIUM";
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-xit').classList.add('active');
+        }
+
+        function setVal(v, label) {
+            precoFinal = v;
+            if(label) itemNome = label + " " + (itemNome.includes("ROBUX") ? "ROBUX" : itemNome.includes("DIAMANTES") ? "DIAMANTES" : "PREMIUM");
+            document.getElementById('display-price').innerText = "Total: R$ " + v.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('btn-pay').style.display = "flex";
+        }
+
+        function calcCustom() {
+            let q = document.getElementById('inp-qty').value;
+            let p = q * 0.0002;
+            if(q < 1000) p = q * 0.001;
+            setVal(p, q);
+        }
+
+        function showPayment() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-pay').classList.add('active');
+            document.getElementById('pay-info').innerText = itemNome + " - Valor: R$ " + precoFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        }
+
+        function goHome() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-main').classList.add('active');
+            document.getElementById('btn-pay').style.display = "none";
+            document.getElementById('display-price').innerText = "";
+            document.getElementById('div-others').style.display = "none";
+        }
+
+        function copyPix() {
+            navigator.clipboard.writeText("Bielmazzer@gmail.com");
+            alert("Chave Pix Copiada!");
+        }
+
+        function openPreview() {
+            const overlay = document.getElementById('preview-overlay');
+            const frame = document.getElementById('preview-frame');
+            overlay.style.display = 'flex';
+            
+            // BUSCA O TEXTO PURO DO SCRIPT SEM CORROMPER CARACTERES
+            const meuMenuHTML = document.getElementById('menu-original-code').innerText;
+            frame.srcdoc = meuMenuHTML; 
+        }
+
+        function closePreview() {
+            document.getElementById('preview-overlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
